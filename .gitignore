@@ -1,0 +1,10 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# exclude all Mac OS graphics
+*/.DS_Store
+.DS_Store
+
+data/
