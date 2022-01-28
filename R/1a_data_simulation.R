@@ -21,9 +21,9 @@ sample_dim <- rbind(c(50,30),
                     c(100,1000))
 colnames(sample_dim) <- c("n", "p")
 
-for(i in (1:nrow(sample_dim))){
-  n = sample_dim[i, "n"]
-  p = sample_dim[i, "p"]
+sim1 <- lapply(1:100, function(i){
+  n = sample_dim[1, "n"]
+  p = sample_dim[1, "p"]
   
   cat("\nSimulating for parameters (n,p) = (", n, ", ", p, ")\n")
   
@@ -31,11 +31,70 @@ for(i in (1:nrow(sample_dim))){
   sim_beta <- generate_beta(p)
   sim_W <- generate_W(n = n, p = p,
                       theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
-                      Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated)
-  sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_contaminated = sim_W$W_contaminated)
+                      Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated,
+                      seed_select = i)
+  sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_test = sim_W$W_test, W_contaminated = sim_W$W_contaminated)
   
   sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)
-  saveRDS(sim_all, file = paste0("data/", i, "_sim_all.RDS"))
-  readr::write_csv(sim_Z$Z, paste0("data/", i, "_sim_Z.csv"))
-  readr::write_csv(sim_Z$Z_contaminated, paste0("data/", i, "_sim_Z_contaminated.csv"))
-}
+  return(sim_all)
+})
+
+sim2 <- lapply(1:100, function(i){
+  n = sample_dim[2, "n"]
+  p = sample_dim[2, "p"]
+  
+  cat("\nSimulating for parameters (n,p) = (", n, ", ", p, ")\n")
+  
+  sim_par <- generate_parameters(p)
+  sim_beta <- generate_beta(p)
+  sim_W <- generate_W(n = n, p = p,
+                      theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
+                      Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated,
+                      seed_select = i*10)
+  sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_test = sim_W$W_test, W_contaminated = sim_W$W_contaminated)
+  
+  sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)
+  return(sim_all)
+})
+
+# sim3 <- lapply(1:100, function(i){
+#   n = sample_dim[3, "n"]
+#   p = sample_dim[3, "p"]
+#   
+#   cat("\nSimulating for parameters (n,p) = (", n, ", ", p, ")\n")
+#   
+#   sim_par <- generate_parameters(p)
+#   sim_beta <- generate_beta(p)
+#   sim_W <- generate_W(n = n, p = p,
+#                       theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
+#                       Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated,
+#                       seed_select = i*100)
+#   sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_contaminated = sim_W$W_contaminated)
+#   
+#   sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)
+#   return(sim_all)
+# })
+
+saveRDS(sim1, "data/sim1.RDS")
+saveRDS(sim2, "data/sim2.RDS")
+# saveRDS(sim3, "data/sim3.RDS")
+
+# for(i in (1:nrow(sample_dim))){
+#   n = sample_dim[i, "n"]
+#   p = sample_dim[i, "p"]
+#   
+#   cat("\nSimulating for parameters (n,p) = (", n, ", ", p, ")\n")
+#   
+#   sim_par <- generate_parameters(p)
+#   sim_beta <- generate_beta(p)
+#   sim_W <- generate_W(n = n, p = p,
+#                       theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
+#                       Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated)
+#   sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_contaminated = sim_W$W_contaminated)
+#   
+#   sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)
+#   sim1 <- c(sim1, list(i = sim_all))
+#   # saveRDS(sim_all, file = paste0("data/", i, "_sim_all.RDS"))
+#   # readr::write_csv(sim_Z$Z, paste0("data/", i, "_sim_Z.csv"))
+#   # readr::write_csv(sim_Z$Z_contaminated, paste0("data/", i, "_sim_Z_contaminated.csv"))
+# }

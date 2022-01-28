@@ -47,7 +47,8 @@ generate_beta <- function(p){
 
 generate_W <- function(n, p, gamma_contamination = 0.1, 
                        theta1, theta2, theta_contaminated, 
-                       Sigma, Sigma_contaminated){
+                       Sigma, Sigma_contaminated,
+                       seed_select = 1){
   # Check parameter dimensions
   if(length(theta1) != p) {stop("1 Parameter vectors do not have the same length")}
   if(length(theta2) != p) {stop("2 Parameter vectors do not have the same length")}
@@ -63,37 +64,74 @@ generate_W <- function(n, p, gamma_contamination = 0.1,
   gamma_n <- floor(n*gamma_contamination)
   
   # Sample the log normal distribution
-  set.seed(n+p + 123)
+  set.seed(n+p + 123 + seed_select)
   W1 <- MASS::mvrnorm(n = n/2, mu = theta1, Sigma = Sigma) %>%
     exp()
-  set.seed(n+p + 231)
+  set.seed(n+p + 231 + seed_select)
   W2 <- MASS::mvrnorm(n = n/2, mu = theta2, Sigma = Sigma) %>%
     exp()
-  set.seed(n+p + 456)
+  set.seed(n+p + 567 + seed_select)
+  W_test1 <- MASS::mvrnorm(n = n/2, mu = theta1, Sigma = Sigma) %>%
+    exp()
+  set.seed(n+p + 987 + seed_select)
+  W_test2 <- MASS::mvrnorm(n = n/2, mu = theta2, Sigma = Sigma) %>%
+    exp()
+  set.seed(n+p + 456 + seed_select)
   W_contaminated <- MASS::mvrnorm(n = gamma_n, mu = theta_contaminated, Sigma = Sigma_contaminated) %>%
     exp()
   
   colnames(W1) <- purrr::map_chr(1:p, ~paste0("p_",.x))
   colnames(W2) <- purrr::map_chr(1:p, ~paste0("p_",.x))
+  colnames(W_test1) <- purrr::map_chr(1:p, ~paste0("p_",.x))
+  colnames(W_test2) <- purrr::map_chr(1:p, ~paste0("p_",.x))
   colnames(W_contaminated) <- purrr::map_chr(1:p, ~paste0("p_",.x))
   
   W1 <- as_tibble(W1) %>%
     mutate(data_type = "W1")
   W2 <- as_tibble(W2) %>%
     mutate(data_type = "W2")
+  W_test1 <- as_tibble(W_test1) %>%
+    mutate(data_type = "W_test1")
+  W_test2 <- as_tibble(W_test2) %>%
+    mutate(data_type = "W_test2")
   W_contaminated <- as_tibble(W_contaminated) %>%
     mutate(data_type = "W_contaminated")
   
   W <- bind_rows(as_tibble(W1), as_tibble(W2))
+  W_test <- bind_rows(as_tibble(W_test1), as_tibble(W_test2))
   
-  return(list(W = W, W_contaminated = W_contaminated))
+  return(list(W = W, W_test = W_test, W_contaminated = W_contaminated))
 }
 
-generate_Z <- function(p, beta, W, W_contaminated){
+generate_Z <- function(p, beta, W, W_test, W_contaminated){
   if(length(beta) != (p+1)) {stop("1 beta vector does not have the same length as p")}
   
   coeff_names <- purrr::map_chr(0:p, ~paste0("p_",.x))
   gamma_n <- nrow(W_contaminated)
+  
+  # Log transform the data
+  Z_test <- W_test %>%
+    mutate(row_sum = W_test %>%
+             dplyr::select(-data_type) %>%
+             rowSums(),
+           across(starts_with("p_"), ~ log(.x/row_sum))) %>%
+    dplyr::select(-row_sum) %>%
+    # Add binary response and intercept
+    mutate(y = ifelse(data_type == "W1", 0, 1),
+           p_0 = 1,
+           id = paste0("clean_",row_number())) %>%
+    relocate(p_0)
+  
+  # Add mu value
+  Z_test <- Z_test %>%
+    mutate(mu_beta_z = compute_mu_beta_z(beta = beta, z = as.matrix(Z_test[,coeff_names])))
+  
+  # Arrange according to mu_beta_z for group W1
+  Z_test <- Z_test %>%
+    filter(data_type == "W1") %>%
+    arrange(mu_beta_z) %>%
+    bind_rows(Z_test %>%
+                filter(data_type == "W2"))
   
   # Log transform the data
   Z <- W %>%
@@ -141,6 +179,6 @@ generate_Z <- function(p, beta, W, W_contaminated){
     bind_rows(Z %>%
                 slice((gamma_n + 1):nrow(Z)))
   
-  return(list(Z = Z, Z_contaminated = Z_contaminated))
+  return(list(Z = Z, Z_test = Z_test, Z_contaminated = Z_contaminated))
 }
 
