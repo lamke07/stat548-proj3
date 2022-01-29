@@ -1,79 +1,122 @@
-setwd("~/My Drive/GitHub/RobZS/R")
-setwd("~/Downloads/GitHub/stat548-proj3/R")
+# setwd("~/My Drive/GitHub/RobZS/R")
+# setwd("~/Downloads/GitHub/stat548-proj3/R")
 rm(list = ls())
 
 source("0b_functions_utils.R")
 
+library(tidyverse)
+library(glmnet)
+library(caret)
+library(pROC)
+library(enetLTS)
 
+# RobZs
 # zeroSum
 # enetLTS
 # glmnet
 
 ################################################################################
-
-library(tidyverse)
-library(glmnet)
-
-# sim_all_1 <- readRDS("data/1_sim_all.RDS")
-# Z_contaminated <- sim_all_1$Z_contaminated
-
-sim1 <- readRDS("data/sim2.RDS")
+sim1 <- readRDS("data/sim1.RDS")
 
 sim1_train <- do.call("rbind", lapply(sim1, '[', "Z_contaminated"))
+sim1_beta <- do.call("rbind", lapply(sim1, '[', "beta"))[[1]]
 sim1_test <- do.call("rbind", lapply(sim1, '[', "Z_test"))
-p <- length(sim1[[1]]$beta) - 1
-n <- nrow(sim1[[1]]$Z_contaminated)
+
+sim2 <- readRDS("data/sim2.RDS")
+
+sim2_train <- do.call("rbind", lapply(sim2, '[', "Z_contaminated"))
+sim2_beta <- do.call("rbind", lapply(sim2, '[', "beta"))[[1]]
+sim2_test <- do.call("rbind", lapply(sim2, '[', "Z_test"))
+
 
 ################################################################################
 
-coeff_names <- purrr::map_chr(1:p, ~paste0("p_",.x))
-
-res_mse = vector(mode = "numeric")
-res_mae = vector(mode = "numeric")
-res_ml = vector(mode = "numeric")
-res_se = vector(mode = "numeric")
-res_sp = vector(mode = "numeric")
-res_auc = vector(mode = "numeric")
+sim1_beta_0 <- sim1_beta[-1]
+coeff_names1 <- purrr::map_chr(1:length(sim1_beta_0), ~paste0("p_",.x))
+sim2_beta_0 <- sim2_beta[-1]
+coeff_names2 <- purrr::map_chr(1:length(sim2_beta_0), ~paste0("p_",.x))
 
 ################################################################################
 
-for(i in (1:100)){
+train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123){
   print(i)
-  test_df_x <- sim1_train[[i]][,coeff_names] %>%
-    as.matrix()
   
-  test_df_y <- sim1_train[[i]][,"y"] %>%
-    as.matrix()
+  train_x <- as.matrix(sim_train[[i]][,coeff_names])
+  train_y <- as.matrix(sim_train[[i]][,"y"])
   
-  test_df_x_new <- sim1_test[[i]][,coeff_names] %>%
-    as.matrix()
-  test_df_x_new_1 <- sim1_test[[i]][,c("p_0",coeff_names)] %>%
-    as.matrix()
-  test_df_x_new_y <- sim1_test[[i]][,"y"] %>%
-    as.matrix()
+  test_x <- as.matrix(sim_test[[i]][,coeff_names])
+  test_x_1 <- as.matrix(sim_test[[i]][,c("p_0",coeff_names)])
+  test_y <- as.matrix(sim_test[[i]][,"y"])
   
-  glm1 <- glmnet(x = test_df_x, y = test_df_y,
-                 family = "binomial", 
-                 lambda = cv.glmnet(x = test_df_x, y = test_df_y)$lambda.1se,
-                 alpha = 1)
+  set.seed(123 + i + seed_select + length(sim1_beta_0) + nrow(train_x))
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.1se
+  glm_lasso <- glmnet(x = train_x, y = train_y,
+                      family = "binomial", 
+                      lambda = lambda_lasso,
+                      alpha = 1)
   
-  y1 <- glmnet::predict.glmnet(glm1, newx = test_df_x_new)
+  y_pred <- predict(glm_lasso, newx = test_x, type = "response")
   
-  new_error <- compute_mu_beta_z(beta = coefficients(glm1), z = test_df_x_new_1) - test_df_x_new_y
-  res_mse <- c(res_mse, mean(new_error^2))
-  res_mae <- c(res_mae, mean(abs(new_error)))
+  eval_metrics <- compute_metrics(y_pred = y_pred, beta_pred = glm_lasso$beta,
+                                  test_y = test_y, true_beta = sim_beta_0,
+                                  name = "LASSO")
+  
+  return(eval_metrics)
 }
 
-min(res_mse)
-min(res_mae)
-sd(res_mse)
-sd(res_mae)
+x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234))
+x2 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
 
-# X1 <- Z_contaminated[,coeff_names] %>%
-#   as.matrix()
-# 
-# Y1 <- Z_contaminated[,"y"] %>%
-#   as.matrix()
-# 
-# test_robzs <- RobZS(xx = X1, yy = Y1, family = "binomial")
-# coef.RobZS(test_robzs)
+x1 %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), mean))
+x1 %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), sd))
+x2 %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), mean))
+x2 %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), sd))
+
+
+i = 1
+x <- purrr::map_df(1:100, function(i){
+  print(i)
+
+  train_x <- as.matrix(sim1_train[[i]][,coeff_names1])
+  train_y <- as.matrix(sim1_train[[i]][,"y"])
+
+  test_x <- as.matrix(sim1_test[[i]][,coeff_names1])
+  test_x_1 <- as.matrix(sim1_test[[i]][,c("p_0",coeff_names1)])
+  test_y <- as.matrix(sim1_test[[i]][,"y"])
+
+  # set.seed(123 + i + seed_select + length(sim1_beta_0) + nrow(train_x))
+  # lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.1se
+  # glm_lasso <- glmnet(x = train_x, y = train_y,
+  #                family = "binomial",
+  #                lambda = lambda_lasso,
+  #                alpha = 1)
+  # 
+  # y_pred <- predict(glm_lasso, newx = test_x, type = "response")
+  
+  glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, plot = "FALSE")
+  y_pred <- predict(a, newX = test_x, type = "response", vers = "reweighted")$reweighted.response
+
+  eval_metrics <- compute_metrics(y_pred = y_pred, beta_pred = glm_enetLTS$coefficients,
+                                  test_y = test_y, true_beta = sim1_beta_0,
+                                  name = "LASSO")
+
+  return(eval_metrics)
+})
+
+# a <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, plot = "FALSE")
+# b <- predict(a, newX = test_x, type = "response", vers = "reweighted")
+
+x %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), mean))
+x %>%
+  group_by(name) %>% 
+  summarise(across(starts_with("res"), sd))
