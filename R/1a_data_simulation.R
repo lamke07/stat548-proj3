@@ -20,7 +20,7 @@ sample_dim <- rbind(c(50,30),
                     c(100,200),
                     c(100,1000))
 colnames(sample_dim) <- c("n", "p")
-
+i = 1
 sim1 <- lapply(1:100, function(i){
   n = sample_dim[1, "n"]
   p = sample_dim[1, "p"]

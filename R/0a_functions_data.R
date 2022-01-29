@@ -117,7 +117,7 @@ generate_Z <- function(p, beta, W, W_test, W_contaminated){
            across(starts_with("p_"), ~ log(.x/row_sum))) %>%
     dplyr::select(-row_sum) %>%
     # Add binary response and intercept
-    mutate(y = ifelse(data_type == "W1", 0, 1),
+    mutate(y = ifelse(data_type == "W_test1", 0, 1),
            p_0 = 1,
            id = paste0("clean_",row_number())) %>%
     relocate(p_0)
@@ -128,10 +128,10 @@ generate_Z <- function(p, beta, W, W_test, W_contaminated){
   
   # Arrange according to mu_beta_z for group W1
   Z_test <- Z_test %>%
-    filter(data_type == "W1") %>%
+    filter(data_type == "W_test1") %>%
     arrange(mu_beta_z) %>%
     bind_rows(Z_test %>%
-                filter(data_type == "W2"))
+                filter(data_type == "W_test2"))
   
   # Log transform the data
   Z <- W %>%
