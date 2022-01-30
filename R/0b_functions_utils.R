@@ -7,21 +7,13 @@ compute_mu_beta_z <- function(beta, z){
   # Check all dimensions are the same
   stopifnot(dim(z)[2] == length(beta))
   boot::inv.logit(as.numeric(z %*% beta))
+  # 1/(1+exp(-as.numeric(z %*% beta)))
 }
 
 compute_logloss <- function(y_pred, test_y){
   # Input: predictions y_pred, true values test_y
   return(-mean(test_y*log(y_pred) + (1-test_y)*log(1-y_pred)))
 }
-
-# compute_FP_FN <- function(beta_pred, true_beta, mode){
-#   print(beta_pred)
-#   print(true_beta)
-#   # Compute contingency matrix for betas
-#   contingency_matrix <- table(as.numeric(beta_pred != 0), as.numeric(true_beta != 0))
-#   if(mode == "FP") {return(contingency_matrix[2,1])}
-#   if(mode == "FN") {return(contingency_matrix[1,2])}
-# }
 
 compute_metrics <- function(y_pred, beta_pred, test_y, true_beta, name, threshold = 0.5){
   y_pred_hard <- as.numeric(y_pred > threshold)
@@ -47,3 +39,12 @@ compute_metrics <- function(y_pred, beta_pred, test_y, true_beta, name, threshol
                         res_fp = res_fp,
                         res_fn = res_fn)))
 }
+
+# compute_FP_FN <- function(beta_pred, true_beta, mode){
+#   print(beta_pred)
+#   print(true_beta)
+#   # Compute contingency matrix for betas
+#   contingency_matrix <- table(as.numeric(beta_pred != 0), as.numeric(true_beta != 0))
+#   if(mode == "FP") {return(contingency_matrix[2,1])}
+#   if(mode == "FN") {return(contingency_matrix[1,2])}
+# }
