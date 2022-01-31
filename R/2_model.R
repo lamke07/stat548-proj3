@@ -3,6 +3,7 @@ rm(list = ls())
 setwd("~/My Drive/GitHub/RobZS/R")
 source("allprogs_RobZS.R")
 setwd("~/Downloads/GitHub/stat548-proj3/R")
+
 source("0b_functions_utils.R")
 
 library(tidyverse)
@@ -36,6 +37,7 @@ coeff_names2 <- purrr::map_chr(1:length(sim2_beta_0), ~paste0("p_",.x))
 
 ################################################################################
 ################################################################################
+# CHANGE LAMBDA.1SE TO LAMBDA.MIN
 
 train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123){
   print(i)
@@ -51,7 +53,7 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   
   # Lasso estimates
   set.seed(123 + seed)
-  lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.1se
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.min
   glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1)
   glm_lasso_beta <- glm_lasso$beta
   
@@ -73,45 +75,46 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
                                   name = "RobLL") %>%
     bind_cols(lambda = glm_enetLTS$lambdaw)
   
-  # LZS estimates
-  set.seed(245 + seed)
-  glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = "binomial", alpha = 1)
-  glm_zeroSum_beta <- coef(glm_zeroSum, s = "lambda.1se")
+  # # LZS estimates
+  # set.seed(245 + seed)
+  # glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = "binomial", alpha = 1)
+  # glm_zeroSum_beta <- coef(glm_zeroSum, s = "lambda.min")
+  # 
+  # y_pred_zeroSum <- compute_mu_beta_z(beta = glm_zeroSum_beta, z = test_x_1)
+  # # y_pred_zeroSum <- predict(object = glm_zeroSum, newX = as.matrix(test_x), type = "response", s = "lambda.min")
+  # 
+  # eval_metrics_LZS <- compute_metrics(y_pred = y_pred_zeroSum, beta_pred = glm_zeroSum_beta[-1],
+  #                                 test_y = test_y, true_beta = sim_beta_0,
+  #                                 name = "LZS") %>%
+  #   bind_cols(lambda = glm_zeroSum$Lambda1SE)
+  # 
+  # # RobZS estimates
+  # glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, seed = 345 + seed, plot = FALSE)
+  # glm_RobZS_beta <- glm_RobZS$coefficients
+  # 
+  # y_pred_RobZS <- predict.RobZS(glm_RobZS, newX = test_x, vers = "reweighted", type0 = "response", intercept = TRUE)$reweighted.response
+  # 
+  # eval_metrics_RobZS <- compute_metrics(y_pred = y_pred_RobZS, beta_pred = glm_RobZS_beta,
+  #                                 test_y = test_y, true_beta = sim_beta_0,
+  #                                 name = "RobZS") %>%
+  #   bind_cols(lambda = glm_RobZS$lambdaw)
   
-  y_pred_zeroSum <- compute_mu_beta_z(beta = glm_zeroSum_beta, z = test_x_1)
-  # y_pred_zeroSum <- predict(object = glm_zeroSum, newX = as.matrix(test_x), type = "response", s = "lambda.1se")
-  
-  eval_metrics_LZS <- compute_metrics(y_pred = y_pred_zeroSum, beta_pred = glm_zeroSum_beta[-1],
-                                  test_y = test_y, true_beta = sim_beta_0,
-                                  name = "LZS") %>%
-    bind_cols(lambda = glm_zeroSum$Lambda1SE)
-  
-  # RobZS estimates
-  glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, seed = 345 + seed, plot = FALSE)
-  glm_RobZS_beta <- glm_RobZS$coefficients
-  
-  y_pred_RobZS <- predict.RobZS(glm_RobZS, newX = test_x, vers = "reweighted", type0 = "response", intercept = TRUE)$reweighted.response
-  
-  eval_metrics_RobZS <- compute_metrics(y_pred = y_pred_RobZS, beta_pred = glm_RobZS_beta,
-                                  test_y = test_y, true_beta = sim_beta_0,
-                                  name = "RobZS") %>%
-    bind_cols(lambda = glm_RobZS$lambdaw)
-  
-  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
+  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS))
 }
 
 ################################################################################
 
 
-# x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234))
-x2 <- purrr::map_df(1:10, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
+x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234))
+# x2 <- purrr::map_df(1:10, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
 
-# x1 %>%
-#   group_by(name) %>% 
-#   summarise(across(starts_with("res"), mean))
-# x1 %>%
-#   group_by(name) %>% 
-#   summarise(across(starts_with("res"), sd))
+x1 %>%
+  group_by(name) %>%
+  summarise(across(starts_with("res"), mean))
+x1 %>%
+  group_by(name) %>%
+  summarise(across(starts_with("res"), sd))
 x2 %>%
   group_by(name) %>%
   summarise(across(starts_with("res"), mean))
