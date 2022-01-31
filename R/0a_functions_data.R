@@ -38,7 +38,7 @@ generate_beta <- function(p){
   beta_tmp <- rep(0,p)
   beta_tmp[c(1,3,5,11,13)] <- -0.5
   beta_tmp[2] <- 1
-  beta_tmp[16] = 1.5
+  beta_tmp[16] <- 1.5
   beta <- c(-1, beta_tmp)
   names(beta) <- purrr::map_chr(0:p, ~paste0("p_",.x))
   
@@ -109,13 +109,13 @@ generate_Z <- function(p, beta, W, W_test, W_contaminated){
   coeff_names <- purrr::map_chr(0:p, ~paste0("p_",.x))
   gamma_n <- nrow(W_contaminated)
   
-  # Log transform the data
+  # Log transform the test data
   Z_test <- W_test %>%
     mutate(row_sum = W_test %>%
              dplyr::select(-data_type) %>%
              rowSums(),
            across(starts_with("p_"), ~ log(.x/row_sum))) %>%
-    dplyr::select(-row_sum) %>%
+    # dplyr::select(-row_sum) %>%
     # Add binary response and intercept
     mutate(y = ifelse(data_type == "W_test1", 0, 1),
            p_0 = 1,
@@ -131,20 +131,20 @@ generate_Z <- function(p, beta, W, W_test, W_contaminated){
     filter(data_type == "W_test1") %>%
     arrange(mu_beta_z) %>%
     bind_rows(Z_test %>%
-                filter(data_type == "W_test2"))
+                filter(data_type == "W_test2")) %>%
+    relocate(data_type, id, y, row_sum, mu_beta_z, p_0)
   
-  # Log transform the data
+  # Log transform the training data
   Z <- W %>%
     mutate(row_sum = W %>%
              dplyr::select(-data_type) %>%
              rowSums(),
            across(starts_with("p_"), ~ log(.x/row_sum))) %>%
-    dplyr::select(-row_sum) %>%
+    # dplyr::select(-row_sum) %>%
     # Add binary response and intercept
     mutate(y = ifelse(data_type == "W1", 0, 1),
            p_0 = 1,
-           id = paste0("clean_",row_number())) %>%
-    relocate(p_0)
+           id = paste0("clean_",row_number()))
   
   # Add mu value
   Z <- Z %>%
@@ -155,30 +155,34 @@ generate_Z <- function(p, beta, W, W_test, W_contaminated){
     filter(data_type == "W1") %>%
     arrange(mu_beta_z) %>%
     bind_rows(Z %>%
-                filter(data_type == "W2"))
+                filter(data_type == "W2")) %>%
+    relocate(data_type, id, y, row_sum, mu_beta_z, p_0)
   
   # Contamination schemes
   Z_tmp <- W_contaminated %>%
     # Log transform the data
-    mutate(row_sum = W_contaminated %>%
-             dplyr::select(-data_type) %>%
-             rowSums(),
+    # mutate(row_sum = W_contaminated %>%
+    #          dplyr::select(-data_type) %>%
+    #          rowSums(),
+    #        across(starts_with("p_"), ~ log(.x/row_sum))) %>%
+    mutate(row_sum = Z %>% 
+             slice(1:gamma_n) %>% 
+             pull(row_sum),
            across(starts_with("p_"), ~ log(.x/row_sum))) %>%
-    dplyr::select(-row_sum) %>%
+    # dplyr::select(-row_sum) %>%
     # Add binary response and intercept
     mutate(p_0 = 1,
-           id = paste0("cont_", row_number())) %>%
-    relocate(p_0)
+           id = paste0("cont_", row_number()))
   
-  # Replace first gamma_n covariates with contaminated covariates
-  # Then append the rest
+  # Replace first gamma_n covariates with contaminated covariates - Then append the rest
   Z_contaminated <- Z_tmp %>%
     bind_cols(Z %>%
                 slice(1:gamma_n) %>%
                 dplyr::select(y, mu_beta_z)) %>%
     bind_rows(Z %>%
-                slice((gamma_n + 1):nrow(Z)))
-  
+                slice((gamma_n + 1):nrow(Z))) %>%
+    relocate(data_type, id, y, row_sum, mu_beta_z, p_0)
+
   return(list(Z = Z, Z_test = Z_test, Z_contaminated = Z_contaminated))
 }
 
