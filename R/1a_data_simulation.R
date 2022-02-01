@@ -1,8 +1,8 @@
 ################################################################################
 rm(list = ls())
 
-source("0a_functions_data.R")
-source("0b_functions_utils.R")
+source("0a_functions_utils.R")
+source("0b_functions_simulation.R")
 
 dir.create("data")
 ################################################################################
@@ -14,7 +14,6 @@ dir.create("data")
 # gamma_contamination <- 0.1
 
 ################################################################################
-
 # Scenarios
 sample_dim <- rbind(c(50,30),
                     c(100,200),
