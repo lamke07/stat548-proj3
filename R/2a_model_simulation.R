@@ -78,8 +78,8 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
 ################################################################################
 
 
-x1 <- purrr::map_df(1:3, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234))
-# x2 <- purrr::map_df(1:10, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
+x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234))
+# x2 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
 
 x1 %>%
   group_by(name) %>%
@@ -98,20 +98,20 @@ x2 %>%
 ################################################################################
 # Testing Ground
 ################################################################################
-
-i = 1
-x <- purrr::map_df(1:100, function(i){
-  print(i)
-
-  train_x <- as.matrix(sim1_train[[i]][,coeff_names1])
-  train_y <- as.matrix(sim1_train[[i]][,"y"])
-
-  test_x_1 <- as.matrix(sim1_test[[i]][,c("p_0",coeff_names1)])
-  test_x <- as.matrix(sim1_test[[i]][,coeff_names1])
-  test_y <- as.matrix(sim1_test[[i]][,"y"])
-  
-  sim_beta_0 <- sim1_beta_0
-  seed = 5
-
-  # return(eval_metrics)
-})
+# 
+# i = 1
+# x <- purrr::map_df(1:100, function(i){
+#   print(i)
+# 
+#   train_x <- as.matrix(sim1_train[[i]][,coeff_names1])
+#   train_y <- as.matrix(sim1_train[[i]][,"y"])
+# 
+#   test_x_1 <- as.matrix(sim1_test[[i]][,c("p_0",coeff_names1)])
+#   test_x <- as.matrix(sim1_test[[i]][,coeff_names1])
+#   test_y <- as.matrix(sim1_test[[i]][,"y"])
+#   
+#   sim_beta_0 <- sim1_beta_0
+#   seed = 5
+# 
+#   # return(eval_metrics)
+# })
