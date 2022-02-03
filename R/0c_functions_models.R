@@ -79,3 +79,45 @@ fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_bet
                                         name = "RobZS") %>%
     bind_cols(lambda = glm_RobZS$lambdaw, no_zeros = sum(glm_RobZS_beta == 0), beta_full)
 }
+
+################################################################################
+################################################################################
+################################################################################
+
+train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123, ncores = 1){
+  print(i)
+  # Preprocessing
+  train_x <- as.matrix(sim_train[[i]][,coeff_names])
+  train_y <- as.matrix(sim_train[[i]][,"y"])
+  
+  test_x_1 <- as.matrix(sim_test[[i]][,c("p_0",coeff_names)])
+  test_x <- as.matrix(sim_test[[i]][,coeff_names])
+  test_y <- as.matrix(sim_test[[i]][,"y"])
+  
+  seed <- i + seed_select + length(sim_beta_0) + nrow(train_x)
+  
+  print("Fitting LASSO...")
+  eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0)
+  
+  print("Fitting LTS (RobLL)...")
+  eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = 6)
+  
+  print("Fitting LZS...")
+  eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x_1, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0)
+  
+  print("Fitting RobZS...")
+  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0)
+  
+  
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
+}
+
+
