@@ -53,7 +53,7 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   
   # Lasso estimates
   set.seed(123 + seed)
-  lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.min
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = 1, family = "binomial")$lambda.min
   glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1)
   glm_lasso_beta <- glm_lasso$beta
   

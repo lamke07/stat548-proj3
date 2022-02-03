@@ -39,6 +39,29 @@ coeff_names2 <- purrr::map_chr(1:length(sim2_beta_0), ~paste0("p_",.x))
 ################################################################################
 # CHANGE LAMBDA.1SE TO LAMBDA.MIN
 
+fit_lasso <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial"){
+  set.seed(123 + seed)
+  # Fit the lasso
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = 1, family = "binomial")$lambda.min
+  glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1)
+  
+  # Obtain coefficients
+  glm_lasso_beta <- glm_lasso$beta
+  beta_full <- t(as.vector(coef(glm_lasso)))
+  colnames(beta_full) = purrr::map_chr(0:ncol(train_x), ~paste0("p_",.x))
+  as_tibble(beta_full)
+  
+  # Obtain predictions
+  y_pred_lasso <- predict(glm_lasso, newx = test_x, type = "response")
+  
+  eval_metrics_lasso <- compute_metrics(y_pred = y_pred_lasso, beta_pred = glm_lasso_beta,
+                                        test_y = test_y, true_beta = sim_beta_0,
+                                        name = "LASSO") %>%
+    bind_cols(lambda = lambda_lasso, no_zeros = sum(glm_lasso_beta == 0), beta_full)
+  
+  return(eval_metrics_lasso)
+}
+
 train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123){
   print(i)
   # Preprocessing
@@ -51,29 +74,32 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   
   seed <- i + seed_select + length(sim_beta_0) + nrow(train_x)
   
-  # Lasso estimates
-  set.seed(123 + seed)
-  lambda_lasso <- cv.glmnet(x = train_x, y = train_y)$lambda.min
-  glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1)
-  glm_lasso_beta <- glm_lasso$beta
+  # # Lasso estimates
+  # set.seed(123 + seed)
+  # lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = 1, family = "binomial")$lambda.min
+  # glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1)
+  # glm_lasso_beta <- glm_lasso$beta
+  # 
+  # y_pred_lasso <- predict(glm_lasso, newx = test_x, type = "response")
+  # 
+  # eval_metrics_lasso <- compute_metrics(y_pred = y_pred_lasso, beta_pred = glm_lasso_beta,
+  #                                 test_y = test_y, true_beta = sim_beta_0,
+  #                                 name = "LASSO") %>%
+  #   bind_cols(lambda = lambda_lasso)
+  eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0)
   
-  y_pred_lasso <- predict(glm_lasso, newx = test_x, type = "response")
-  
-  eval_metrics_lasso <- compute_metrics(y_pred = y_pred_lasso, beta_pred = glm_lasso_beta,
-                                  test_y = test_y, true_beta = sim_beta_0,
-                                  name = "LASSO") %>%
-    bind_cols(lambda = lambda_lasso)
-  
-  # RobLL estimates
-  glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, seed = 234 + seed, plot = "FALSE")
-  glm_enetLTS_beta <- glm_enetLTS$coefficients
-  
-  y_pred_LTS <- predict(glm_enetLTS, newX = test_x, type = "response", vers = "reweighted")$reweighted.response
-  
-  eval_metrics_LTS <- compute_metrics(y_pred = y_pred_LTS, beta_pred = glm_enetLTS_beta,
-                                  test_y = test_y, true_beta = sim_beta_0,
-                                  name = "RobLL") %>%
-    bind_cols(lambda = glm_enetLTS$lambdaw)
+  # # RobLL estimates
+  # glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, seed = 234 + seed, plot = "FALSE")
+  # glm_enetLTS_beta <- glm_enetLTS$coefficients
+  # 
+  # y_pred_LTS <- predict(glm_enetLTS, newX = test_x, type = "response", vers = "reweighted")$reweighted.response
+  # 
+  # eval_metrics_LTS <- compute_metrics(y_pred = y_pred_LTS, beta_pred = glm_enetLTS_beta,
+  #                                 test_y = test_y, true_beta = sim_beta_0,
+  #                                 name = "RobLL") %>%
+  #   bind_cols(lambda = glm_enetLTS$lambdaw)
   
   # # LZS estimates
   # set.seed(245 + seed)
@@ -100,7 +126,7 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   #   bind_cols(lambda = glm_RobZS$lambdaw)
   
   # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
-  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS))
+  return(bind_rows(eval_metrics_lasso))
 }
 
 ################################################################################
