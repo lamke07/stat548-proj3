@@ -92,22 +92,3 @@ x2 %>%
 x2 %>%
   group_by(name) %>%
   summarise(across(starts_with("res"), sd))
-
-################################################################################
-################################################################################
-# Testing Ground
-################################################################################
-
-i = 1
-x <- purrr::map_df(1:100, function(i){
-  print(i)
-
-  train_x <- as.matrix(sim1_train[[i]][,coeff_names1])
-  train_y <- as.matrix(sim1_train[[i]][,"y"])
-
-  test_x_1 <- as.matrix(sim1_test[[i]][,c("p_0",coeff_names1)])
-  test_x <- as.matrix(sim1_test[[i]][,coeff_names1])
-  test_y <- as.matrix(sim1_test[[i]][,"y"])
-
-  # return(eval_metrics)
-})
