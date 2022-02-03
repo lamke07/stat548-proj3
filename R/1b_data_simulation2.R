@@ -2,7 +2,7 @@
 rm(list = ls())
 
 source("0a_functions_utils.R")
-source("0c_functions_simulation2.R")
+source("0b_functions_simulation.R")
 
 dir.create("data")
 ################################################################################
