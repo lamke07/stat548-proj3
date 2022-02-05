@@ -368,9 +368,9 @@ generate_parameters3 <- function(n, p, gamma_n, seed){
   
   par_5 <- 10
   
-  alpha0 <- c(rep(60, 3), rep(120, 4), rep(5, par_5), rep(0.1, p - (3 + 4 + par_5)))
-  alpha1 <- c(rep(0.1, 2), rep(90, 5), rep(60, 5), rep(5, par_5), rep(0.1, p - (5 + 5 + par_5 + 2)))
-  alpha_contaminated <- c(rep(70, 4), rep(85,4), rep(5, par_5), rep(0.1, p - (4+4 + par_5)))
+  alpha0 <- c(rep(60, 3), rep(90, 4), rep(5, par_5), rep(0.1, p - (3 + 4 + par_5)))
+  alpha1 <- c(rep(64, 5), rep(86, 5), rep(5, par_5), rep(0.1, p - (5 + 5 + par_5)))
+  alpha_contaminated <- c(rep(85, 4), rep(85,4), rep(5, par_5), rep(0.1, p - (4 + 4 + par_5)))
   
   set.seed(seed + 1323)
   p_dirichlet0 <- MCMCpack::rdirichlet(n/2, alpha0)
@@ -396,7 +396,7 @@ generate_multinomial <- function(n, size, prob, seed =1){
 
 generate_W3 <- function(n, gamma_n, p_dirichlet0, p_dirichlet1, p_dirichlet_contaminated){
   mu <- 6000
-  sigma <- 600
+  sigma <- 700
   
   set.seed(4444)
   n_samples_train0 <- round(rnorm(n/2, mu, sigma))
@@ -439,9 +439,6 @@ generate_W3 <- function(n, gamma_n, p_dirichlet0, p_dirichlet1, p_dirichlet_cont
 }
 
 
-
-################################################################################
-################################################################################
 generate_Z3 <- function(p, gamma_n, beta, W, W_test, W_contaminated){
   if(length(beta) != (p+1)) {stop("1 beta vector does not have the same length as p")}
   

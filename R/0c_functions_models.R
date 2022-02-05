@@ -61,9 +61,9 @@ fit_zeroSum <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_b
     bind_cols(lambda = glm_zeroSum$Lambda1SE, no_zeros = sum(beta_full[-1] == 0), beta_full)
 }
 
-fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial"){
+fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1){
   # RobZS estimates
-  glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, seed = 345 + seed, plot = FALSE)
+  glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, seed = 345 + seed, plot = FALSE, ncores = ncores)
   
   # Obtain coefficients
   glm_RobZS_beta <- glm_RobZS$coefficients
@@ -84,7 +84,7 @@ fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_bet
 ################################################################################
 ################################################################################
 
-train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123, ncores = 1){
+train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123, ncores = 6){
   print(i)
   # Preprocessing
   train_x <- as.matrix(sim_train[[i]][,coeff_names])
@@ -104,7 +104,7 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   print("Fitting LTS (RobLL)...")
   eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y, 
                                   test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = 6)
+                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
   
   print("Fitting LZS...")
   eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y, 
@@ -112,12 +112,13 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
                                   seed = seed, sim_beta_0 = sim_beta_0)
   
   print("Fitting RobZS...")
-  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y, 
+  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
                                   test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0)
+                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
   
   
   return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
+  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS))
 }
 
 

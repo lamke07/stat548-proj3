@@ -31,7 +31,7 @@ sim1 <- lapply(1:100, function(i){
   sim_W <- generate_W(n = n, p = p,
                       theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
                       Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated,
-                      seed_select = i)
+                      seed_select = 100+i)
   sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_test = sim_W$W_test, W_contaminated = sim_W$W_contaminated)
   
   sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)
@@ -49,7 +49,7 @@ sim2 <- lapply(1:100, function(i){
   sim_W <- generate_W(n = n, p = p,
                       theta1 = sim_par$theta1, theta2 = sim_par$theta2, theta_contaminated = sim_par$theta_contaminated,
                       Sigma = sim_par$Sigma, Sigma_contaminated = sim_par$Sigma_contaminated,
-                      seed_select = i*10)
+                      seed_select = 200 + i)
   sim_Z <- generate_Z(p = p, beta = sim_beta$beta, W = sim_W$W, W_test = sim_W$W_test, W_contaminated = sim_W$W_contaminated)
   
   sim_all <- c(sim_par, sim_beta, sim_W, sim_Z)

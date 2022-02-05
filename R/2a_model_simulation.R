@@ -41,18 +41,29 @@ coeff_names2 <- purrr::map_chr(1:length(sim2_beta_0), ~paste0("p_",.x))
 ################################################################################
 ################################################################################
 
-x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 1234), .progress = TRUE)
-readr::write_csv(x1, "results/sim1_results.csv")
+x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 223))
+# readr::write_csv(x1, "results/sim1_results.csv")
+x1 <- read_csv("results/sim1_results.csv")
 
 x2 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
-readr::write_csv(x2, "results/sim2_results.csv")
+# readr::write_csv(x2, "results/sim2_results.csv")
+x2 <- read_csv("results/sim2_results.csv")
 
+x1 %>%
+  group_by(name) %>%
+  summarise(across(starts_with("res"), list(mean = mean,
+                                            sd = sd), na.rm = TRUE)) %>%
+  relocate(name, res_se_mean, res_se_sd, res_sp_mean, res_sp_sd, res_auc_mean, res_auc_sd) %>%
+  readr::write_csv("results/table_sim1.csv")
+x2 %>%
+  group_by(name) %>%
+  summarise(across(starts_with("res"), list(mean = mean,
+                                            sd = sd), na.rm = TRUE)) %>%
+  relocate(name, res_se_mean, res_se_sd, res_sp_mean, res_sp_sd, res_auc_mean, res_auc_sd) %>%
+  readr::write_csv("results/table_sim2.csv")
 # x1 %>%
 #   group_by(name) %>%
-#   summarise(across(starts_with("res"), mean))
-# x1 %>%
-#   group_by(name) %>%
-#   summarise(across(starts_with("res"), sd))
+#   summarise(across(starts_with("res"), sd, na.rm = TRUE))
 # x2 %>%
 #   group_by(name) %>%
 #   summarise(across(starts_with("res"), mean))
