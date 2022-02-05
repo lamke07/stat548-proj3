@@ -30,7 +30,8 @@ selbal_HIV_x <- selbal_HIV %>%
 
 # Get training data
 selbal_train <- bind_cols(normalize_rows(selbal_HIV_x) %>%
-                            dplyr::select(-row_sum),
+                            dplyr::select(-row_sum) %>% 
+                            log(),
                           selbal_HIV %>%
                             dplyr::select(HIV_Status)) %>%
   arrange(HIV_Status) %>%
@@ -50,6 +51,17 @@ rm(selbal_HIV_x)
 # sum(selbal_HIV$HIV_Status)
 # # 35% 0's
 # sum(selbal_HIV %>% dplyr::select(-HIV_Status) == 0)/(155*60)
+
+# selbal_HIV %>%
+#   dplyr::select(-MSM) %>%
+#   group_by(HIV_Status) %>%
+#   summarise(across(everything(), max)) %>%
+#   ungroup() %>%
+#   pivot_longer(-HIV_Status, names_to = "type", values_to = "max_count") %>%
+#   # mutate(count_group = cut(max_count, breaks = c(0, 50, 100, 200, 300, 600, 800, 1000, 1500, 6000), labels = c("< 0050", "< 0100", "< 0200", "< 0300", "< 0600", "< 0800", "< 1000", "< 1500", "< 6000"))) %>%
+#   mutate(count_group = cut(max_count, breaks = c(0, 100, 300, 600, 1000, 6000), labels = c("< 0100", "< 0300", "< 0600", "< 1500", "< 6000"))) %>%
+#   group_by(HIV_Status, count_group) %>%
+#   summarise(count = n())
 
 ################################################################################
 cv_folds <- lapply(1:20, balanced_folds, n0 = n0, n1 = n1)
