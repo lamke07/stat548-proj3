@@ -85,3 +85,10 @@ compute_metrics <- function(y_pred, beta_pred, test_y, true_beta, name, threshol
 #   if(mode == "FP") {return(contingency_matrix[2,1])}
 #   if(mode == "FN") {return(contingency_matrix[1,2])}
 # }
+
+mean_nbinom <- function(r,p){
+  stopifnot(p < 1 && p >= 0)
+  stopifnot(r > 0)
+  
+  return(p*r/(1-p))
+}
