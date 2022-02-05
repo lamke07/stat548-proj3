@@ -101,7 +101,9 @@ train_models_all <- function(df, cv_folds, fold_select){
                     filter(fold == i) %>%
                     dplyr::pull(HIV_Status)
                   
-                  res_new <- train_models_CV(train_x = train_x, train_y = train_y, test_x = test_x, test_y = test_y, seed = i*fold_select*100 + 5, ncores = 6) %>%
+                  res_new <- train_models_CV(train_x = train_x, train_y = train_y, 
+                                             test_x = test_x, test_y = test_y, standardize = TRUE,
+                                             seed = i*fold_select*100 + 5, ncores = 6) %>%
                     mutate(fold = fold_select, fold_test = i)
                   
                   return(res_new)
@@ -111,37 +113,43 @@ train_models_all <- function(df, cv_folds, fold_select){
   return(res)
 }
 
-train_models_CV <- function(train_x, train_y, test_x, test_y, sim_beta_0 = FALSE, seed = 123, ncores = ncores){
+train_models_CV <- function(train_x, train_y, test_x, test_y, sim_beta_0 = FALSE, seed = 123, ncores = ncores, standardize = TRUE){
   
   print("Fitting Lasso...")
   eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
                                   test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0)
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
   
-  # print("Fitting LTS (RobLL)...")
-  # eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y, 
-  #                                 test_x = test_x, test_y = test_y,
-  #                                 seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
+  print("Fitting LTS (RobLL)...")
+  eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y,
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+                                  ncores = ncores)
   
   print("Fitting LZS...")
   eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y, 
-                                  test_x = cbind(1, test_x), test_y = test_y,
+                                  test_x = cbind(1, test_x), test_y = test_y, standardize = standardize,
                                   seed = seed, sim_beta_0 = sim_beta_0)
   
   
   # print("Fitting RobZS...")
-  # eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y, 
+  # eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
   #                                 test_x = test_x, test_y = test_y,
-  #                                 seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
+  #                                 seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+  #                                 ncores = ncores)
   
   # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
-  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS))
-  return(bind_rows(eval_metrics_lasso, eval_metrics_LZS))
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS))
+  # return(bind_rows(eval_metrics_lasso, eval_metrics_LZS))
 }
 
 ################################################################################
+safe_train_models_all <- safely(.f = train_models_all)
 # x <- train_models_all(df = selbal_train, fold_select = 1, cv_folds = cv_folds)
-# y <- purrr::map_df(1:20, ~train_models_all(df = selbal_train, fold_select = .x, cv_folds = cv_folds))
+y <- purrr::map(1:20, ~safe_train_models_all(df = selbal_train, fold_select = .x, cv_folds = cv_folds))
+y_result <- purrr::map_df(x1, "result")
+y_error <- purrr::map(x1, "error")
+readr::write_csv(y_result, "results/sim1_results.csv")
 # saveRDS(y, "results/selbal_y.RDS")
 
 dir.create("figures")

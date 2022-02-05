@@ -41,13 +41,21 @@ coeff_names2 <- purrr::map_chr(1:length(sim2_beta_0), ~paste0("p_",.x))
 ################################################################################
 ################################################################################
 
-x1 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 3390))
-# readr::write_csv(x1, "results/extended_sim1_results.csv")
+safe_train_models <- safely(.f = train_models)
 
-x2 <- purrr::map_df(1:100, ~train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
-readr::write_csv(x2, "results/extended_sim2_results.csv")
+x1 <- purrr::map(1:100, ~safe_train_models(.x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 3390))
+x1_result <- purrr::map_df(x1, "result")
+x1_error <- purrr::map(x1, "error")
+readr::write_csv(x1_result, "results/sim1_results.csv")
+# x1 <- read_csv("results/sim1_results.csv")
 
-x1 %>%
+x2 <- purrr::map(1:100, ~safe_train_models(.x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567))
+x2_result <- purrr::map_df(x2, "result")
+x2_error <- purrr::map(x2, "error")
+readr::write_csv(x2_result, "results/sim2_results.csv")
+# x2 <- read_csv("results/sim2_results.csv")
+
+x1_result %>%
   group_by(name) %>%
   summarise(across(starts_with("res"), list(mean = mean,
                                             sd = sd), na.rm = TRUE)) %>%

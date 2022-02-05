@@ -1,8 +1,8 @@
-fit_lasso <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial"){
+fit_lasso <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", standardize = TRUE){
   set.seed(123 + seed)
   # Fit the lasso
-  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = alpha, family = family)$lambda.min
-  glm_lasso <- glmnet(x = train_x, y = train_y, family = family, lambda = lambda_lasso, alpha = alpha)
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = alpha, family = family, standardise = standardize)$lambda.min
+  glm_lasso <- glmnet(x = train_x, y = train_y, family = family, lambda = lambda_lasso, alpha = alpha, standardise = standardize)
   
   # Obtain coefficients
   glm_lasso_beta <- glm_lasso$beta
@@ -21,9 +21,9 @@ fit_lasso <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_bet
   return(eval_metrics_lasso)
 }
 
-fit_enetLTS  <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1){
+fit_enetLTS  <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1, standardize = TRUE){
   # Fit enetLTS
-  glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, ncores = ncores, seed = 234 + seed, plot = "FALSE")
+  glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, ncores = ncores, seed = 234 + seed, plot = "FALSE", scal = standardize)
   
   # Obtain coefficients
   glm_enetLTS_beta <- glm_enetLTS$coefficients
@@ -40,10 +40,10 @@ fit_enetLTS  <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_
     bind_cols(lambda = glm_enetLTS$lambdaw, no_zeros = sum(glm_enetLTS_beta == 0), beta_full)
 }
 
-fit_zeroSum <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial"){
+fit_zeroSum <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", standardize = TRUE){
   # LZS estimates
   set.seed(245 + seed)
-  glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = family, alpha = alpha)
+  glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = family, alpha = alpha, standardize = standardize)
   
   # Obtain coefficients
   glm_zeroSum_beta <- coefficients(glm_zeroSum, s = "lambda.min")
@@ -61,9 +61,9 @@ fit_zeroSum <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_b
     bind_cols(lambda = glm_zeroSum$Lambda1SE, no_zeros = sum(beta_full[-1] == 0), beta_full)
 }
 
-fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1){
+fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1, standardize = TRUE){
   # RobZS estimates
-  glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, seed = 345 + seed, plot = FALSE, ncores = ncores)
+  glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, seed = 345 + seed, plot = FALSE, ncores = ncores, scal = standardize)
   
   # Obtain coefficients
   glm_RobZS_beta <- glm_RobZS$coefficients
@@ -84,7 +84,7 @@ fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_bet
 ################################################################################
 ################################################################################
 
-train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123, ncores = 6){
+train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_select = 123, ncores = 6, standardize = TRUE){
   print(i)
   # Preprocessing
   train_x <- as.matrix(sim_train[[i]][,coeff_names])
@@ -99,26 +99,30 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
   print("Fitting LASSO...")
   eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
                                   test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0)
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
   
   print("Fitting LTS (RobLL)...")
   eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y, 
                                   test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+                                  ncores = ncores)
   
   print("Fitting LZS...")
   eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y, 
                                   test_x = test_x_1, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0)
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
   
-  print("Fitting RobZS...")
-  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
-                                  test_x = test_x, test_y = test_y,
-                                  seed = seed, sim_beta_0 = sim_beta_0, ncores = ncores)
+  # print("Fitting RobZS...")
+  # eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
+  #                                 test_x = test_x, test_y = test_y,
+  #                                 seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+  #                                 ncores = ncores)
   
   
-  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
-  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS))
+  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS) %>%
+           mutate(id_run = i) %>%
+           relocate(id_run))
 }
 
 
