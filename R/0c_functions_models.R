@@ -1,8 +1,14 @@
+library(glmnet)
+library(enetLTS) # RobLL
+library(zeroSum) # LZS
+library(caret)
+library(pROC)
+
 fit_lasso <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", standardize = TRUE){
   set.seed(123 + seed)
   # Fit the lasso
-  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = alpha, family = family, standardise = standardize)$lambda.min
-  glm_lasso <- glmnet(x = train_x, y = train_y, family = family, lambda = lambda_lasso, alpha = alpha, standardise = standardize)
+  lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = alpha, family = family, standardize = standardize)$lambda.min
+  glm_lasso <- glmnet(x = train_x, y = train_y, family = family, lambda = lambda_lasso, alpha = alpha, standardize = standardize)
   
   # Obtain coefficients
   glm_lasso_beta <- glm_lasso$beta
@@ -108,21 +114,48 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
                                   ncores = ncores)
   
   print("Fitting LZS...")
-  eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y, 
+  eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y,
                                   test_x = test_x_1, test_y = test_y,
                                   seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
   
-  # print("Fitting RobZS...")
-  # eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
-  #                                 test_x = test_x, test_y = test_y,
-  #                                 seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
-  #                                 ncores = ncores)
+  print("Fitting RobZS...")
+  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+                                  ncores = ncores)
   
   
-  # return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
-  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS) %>%
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS) %>%
            mutate(id_run = i) %>%
-           relocate(id_run))
+           relocate(id_run)
+         )
+}
+
+train_models_CV <- function(train_x, train_y, test_x, test_y, sim_beta_0 = FALSE, seed = 123, ncores = 6, standardize = TRUE){
+  
+  print("Fitting Lasso...")
+  eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
+  
+  print("Fitting LTS (RobLL)...")
+  eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y,
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+                                  ncores = ncores)
+
+  print("Fitting LZS...")
+  eval_metrics_LZS <- fit_zeroSum(train_x = train_x, train_y = train_y,
+                                  test_x = cbind(1, test_x), test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
+
+  print("Fitting RobZS...")
+  eval_metrics_RobZS <- fit_RobZS(train_x = train_x, train_y = train_y,
+                                  test_x = test_x, test_y = test_y,
+                                  seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize,
+                                  ncores = ncores)
+  
+  return(bind_rows(eval_metrics_lasso, eval_metrics_LTS, eval_metrics_LZS, eval_metrics_RobZS))
 }
 
 

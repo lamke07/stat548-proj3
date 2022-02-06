@@ -2,6 +2,9 @@ library(tidyverse)
 library(MASS)
 library(boot)
 library(cvTools)
+library(selbal)
+library(dplyr)
+library(readr)
 
 balanced_folds <- function(seed_select, n0, n1, K = 5, R = 1){
   # Returns 5 balanced folds based on grouping n0 and n1
@@ -87,8 +90,15 @@ compute_metrics <- function(y_pred, beta_pred, test_y, true_beta, name, threshol
 # }
 
 mean_nbinom <- function(r,p){
-  stopifnot(p < 1 && p >= 0)
+  stopifnot(p <= 1 && p > 0)
   stopifnot(r > 0)
   
-  return(p*r/(1-p))
+  return(r*(1-p)/p)
+}
+
+var_nbinom <- function(r,p){
+  stopifnot(p <= 1 && p > 0)
+  stopifnot(r > 0)
+  
+  return(r*(1-p)/(p^2))
 }
