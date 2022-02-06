@@ -48,7 +48,7 @@ safe_train_models <- safely(.f = train_models)
 ################################################################################
 
 
-x1 <- purrr::map(1:5, ~safe_train_models(i = .x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 223, standardize = TRUE))
+x1 <- purrr::map(1:100, ~safe_train_models(i = .x, sim_train = sim1_train, sim_test = sim1_test, sim_beta_0 = sim1_beta_0, coeff_names = coeff_names1, seed_select = 223, standardize = TRUE, ncores = 6))
 x1_result <- purrr::map_df(x1, "result")
 x1_error <- purrr::map(x1, "error")
 
@@ -61,7 +61,7 @@ x1_result %>%
   relocate(name, res_se_mean, res_se_sd, res_sp_mean, res_sp_sd, res_auc_mean, res_auc_sd) %>%
   readr::write_csv("results/sim1_results-table.csv")
 
-x2 <- purrr::map(1:3, ~safe_train_models(i = .x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567, standardize = TRUE))
+x2 <- purrr::map(1:100, ~safe_train_models(i = .x, sim_train = sim2_train, sim_test = sim2_test, sim_beta_0 = sim2_beta_0, coeff_names = coeff_names2, seed_select = 567, standardize = TRUE))
 x2_result <- purrr::map_df(x2, "result")
 x2_error <- purrr::map(x2, "error")
 
@@ -74,7 +74,7 @@ x2_result %>%
   relocate(name, res_se_mean, res_se_sd, res_sp_mean, res_sp_sd, res_auc_mean, res_auc_sd) %>%
   readr::write_csv("results/sim2_results-table.csv")
 
-x_own <- purrr::map(1:5, ~safe_train_models(i = .x, sim_train = sim_own_train, sim_test = sim_own_test, sim_beta_0 = sim_own_beta_0, coeff_names = coeff_names_own, seed_select = 1225, standardize = TRUE))
+x_own <- purrr::map(1:100, ~safe_train_models(i = .x, sim_train = sim_own_train, sim_test = sim_own_test, sim_beta_0 = sim_own_beta_0, coeff_names = coeff_names_own, seed_select = 1225, standardize = TRUE))
 x_own_result <- purrr::map_df(x_own, "result")
 x_own_error <- purrr::map(x_own, "error")
 
