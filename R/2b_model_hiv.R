@@ -48,7 +48,7 @@ train_models_all <- function(df, cv_folds, fold_select){
   cv_fold <- cv_folds[[fold_select]]
   n <- nrow(df)
 
-  res <- purrr::map_df(1:5,
+  res <- purrr::map_df(1:3,
                 function(i){
                   cat("\n Replication:", fold_select, "| Fold: ", i, "\n")
                   
@@ -87,7 +87,7 @@ train_models_all <- function(df, cv_folds, fold_select){
 
 ################################################################################
 # Run all cross validation
-cv_folds <- lapply(1:20, balanced_folds, n0 = n0, n1 = n1)
+cv_folds <- lapply(1:20, balanced_folds, n0 = n0, n1 = n1, K = 3)
 safe_train_models_all <- safely(.f = train_models_all)
 
 x_selbal <- purrr::map(1:20, ~safe_train_models_all(df = selbal_train, fold_select = .x, cv_folds = cv_folds))
@@ -109,6 +109,7 @@ dir.create("figures")
 
 # Average coefficient
 df <- x_selbal_result %>% 
+  dplyr::select(-p_0) %>%
   group_by(name) %>% 
   summarise(across(starts_with("p_"), mean)) %>%
   ungroup() %>% 
@@ -130,7 +131,7 @@ df <- x_selbal_result %>%
 
 p <- ggplot(data = df) +
   geom_boxplot(aes(x = name, y = res, group = name)) +
-  facet_wrap(~res_type) +
+  facet_wrap(~res_type, scale = "free_y") +
   labs(x = "Models", y = "Evaluation Metric", title = "Comparison of Evaluation metrics for models") +
   theme_light()
 
@@ -160,10 +161,12 @@ ggsave(p, filename = "figures/selbal_HIV_proportion.pdf", width = 6, height = 4)
 ################################################################################
 # Training on full model
 train_x <- selbal_train %>%
+  slice(1:154) %>%
   dplyr::select(-c(row_index, HIV_Status)) %>%
   as.matrix()
 
 train_y <- selbal_train %>%
+  slice(1:154) %>%
   dplyr::pull(HIV_Status)
 
 ################################################################################
@@ -173,15 +176,16 @@ standardize = TRUE
 set.seed(123)
 lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = 1, family = "binomial", standardize = standardize)$lambda.min
 glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1, standardize = standardize)
-saveRDS(glm_lasso, "results/glm_lasso.RDS")
+# saveRDS(glm_lasso, "results/glm_lasso.RDS")
 
-glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, seed = 234, plot = "FALSE", standardize = standardize)
-saveRDS(glm_enetLTS, "results/glm_enetLTS.RDS")
+glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, seed = 234, plot = "FALSE", scal = standardize)
+# saveRDS(glm_enetLTS, "results/glm_enetLTS.RDS")
 
 set.seed(245)
 glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = "binomial", alpha = 1, ncores = 6, standardize = standardize)
-saveRDS(glm_zeroSum, "results/glm_zeroSum.RDS")
+# saveRDS(glm_zeroSum, "results/glm_zeroSum.RDS")
 
-glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, seed = 345, ncores = 6, plot = FALSE, standardize = standardize)
-saveRDS(glm_RobZS, "results/glm_RobZS.RDS")
+glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, seed = 567, ncores = 6, plot = FALSE, scal = standardize)
+# saveRDS(glm_RobZS, "results/glm_RobZS.RDS")
+
 
