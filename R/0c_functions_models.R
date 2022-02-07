@@ -67,7 +67,7 @@ fit_zeroSum <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_b
     bind_cols(lambda = glm_zeroSum$Lambda1SE, no_zeros = sum(beta_full[-1] == 0), beta_full)
 }
 
-fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 1, standardize = TRUE){
+fit_RobZS <- function(train_x, train_y, test_x, test_y, seed, alpha = 1, sim_beta_0 = FALSE, family = "binomial", ncores = 6, standardize = TRUE){
   # RobZS estimates
   glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = family, alphas = alpha, seed = 345 + seed, plot = FALSE, ncores = ncores, scal = standardize)
   
@@ -134,10 +134,10 @@ train_models <- function(i, sim_train, sim_test, sim_beta_0, coeff_names, seed_s
 train_models_CV <- function(train_x, train_y, test_x, test_y, sim_beta_0 = FALSE, seed = 123, ncores = 6, standardize = TRUE){
   
   print("Fitting Lasso...")
-  eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y, 
+  eval_metrics_lasso <- fit_lasso(train_x = train_x, train_y = train_y,
                                   test_x = test_x, test_y = test_y,
                                   seed = seed, sim_beta_0 = sim_beta_0, standardize = standardize)
-  
+
   print("Fitting LTS (RobLL)...")
   eval_metrics_LTS <- fit_enetLTS(train_x = train_x, train_y = train_y,
                                   test_x = test_x, test_y = test_y,

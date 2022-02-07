@@ -2,16 +2,16 @@ library(tidyverse)
 library(MASS)
 library(boot)
 library(cvTools)
-library(selbal)
+# library(selbal)
 library(dplyr)
 library(readr)
 
 balanced_folds <- function(seed_select, n0, n1, K = 5, R = 1){
   # Returns 5 balanced folds based on grouping n0 and n1
   set.seed(seed_select + 3322)
-  cv_fold0 <- cvFolds(n0, K = 5, R = 1)
+  cv_fold0 <- cvFolds(n0, K = K, R = R)
   set.seed(seed_select + 2233)
-  cv_fold1 <- cvFolds(n1, K = 5, R = 1)
+  cv_fold1 <- cvFolds(n1, K = K, R = R)
   
   return(
     bind_rows(list(row_index = as.vector(cv_fold0$subsets), fold = cv_fold0$which),
