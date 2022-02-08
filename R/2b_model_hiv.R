@@ -176,16 +176,52 @@ standardize = TRUE
 set.seed(123)
 lambda_lasso <- cv.glmnet(x = train_x, y = train_y, alpha = 1, family = "binomial", standardize = standardize)$lambda.min
 glm_lasso <- glmnet(x = train_x, y = train_y, family = "binomial", lambda = lambda_lasso, alpha = 1, standardize = standardize)
-# saveRDS(glm_lasso, "results/glm_lasso.RDS")
+saveRDS(glm_lasso, "results/glm_lasso.RDS")
 
 glm_enetLTS <- enetLTS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, ncores = 6, seed = 234, plot = "FALSE", scal = standardize)
-# saveRDS(glm_enetLTS, "results/glm_enetLTS.RDS")
+saveRDS(glm_enetLTS, "results/glm_enetLTS.RDS")
 
 set.seed(245)
 glm_zeroSum <- zeroSum(train_x, as.vector(train_y), family = "binomial", alpha = 1, ncores = 6, standardize = standardize)
-# saveRDS(glm_zeroSum, "results/glm_zeroSum.RDS")
+saveRDS(glm_zeroSum, "results/glm_zeroSum.RDS")
 
 glm_RobZS <- RobZS(xx = train_x, yy = as.vector(train_y), family = "binomial", alphas = 1, seed = 567, ncores = 6, plot = FALSE, scal = standardize)
-# saveRDS(glm_RobZS, "results/glm_RobZS.RDS")
+saveRDS(glm_RobZS, "results/glm_RobZS.RDS")
 
-
+################################################################################
+# # Rerun the models with outliers removed
+# 
+# outlier_id <- which(glm_RobZS$raw.wt == 0)
+# 
+# train_x_new <- selbal_train %>%
+#   slice(1:154) %>%
+#   # remove outliers
+#   slice(-outlier_id) %>%
+#   dplyr::select(-c(row_index, HIV_Status)) %>%
+#   as.matrix()
+# 
+# train_y_new <- selbal_train %>%
+#   slice(1:154) %>%
+#   slice(-outlier_id) %>%
+#   dplyr::pull(HIV_Status)
+# 
+# # Model runs
+# standardize = TRUE
+# 
+# set.seed(987)
+# lambda_lasso <- cv.glmnet(x = train_x_new, y = train_y_new, alpha = 1, family = "binomial", standardize = standardize)$lambda.min
+# glm_lasso <- glmnet(x = train_x_new, y = train_y_new, family = "binomial", lambda = lambda_lasso, alpha = 1, standardize = standardize)
+# saveRDS(glm_lasso, "results/glm_lasso_no_outliers.RDS")
+# 
+# glm_enetLTS <- enetLTS(xx = train_x_new, yy = as.vector(train_y_new), family = "binomial", alphas = 1, ncores = 6, seed = 687, plot = "FALSE", scal = standardize)
+# saveRDS(glm_enetLTS, "results/glm_enetLTS_no_outliers.RDS")
+# 
+# set.seed(589)
+# glm_zeroSum <- zeroSum(train_x_new, as.vector(train_y_new), family = "binomial", alpha = 1, ncores = 6, standardize = standardize)
+# saveRDS(glm_zeroSum, "results/glm_zeroSum_no_outliers.RDS")
+# 
+# glm_RobZS <- RobZS(xx = train_x_new, yy = as.vector(train_y_new), family = "binomial", alphas = 1, seed = 240, ncores = 6, plot = FALSE, scal = standardize)
+# saveRDS(glm_RobZS, "results/glm_RobZS_no_outliers.RDS")
+# 
+# 
+# 

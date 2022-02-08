@@ -38,6 +38,18 @@ compute_mu_beta_z <- function(beta, z){
   # 1/(1+exp(-as.numeric(z %*% beta)))
 }
 
+compute_A <- function(beta, z){
+  stopifnot(dim(z)[2] == length(beta))
+  # exp(z %*% beta)/((1 + z %*% beta)^2)
+  # eta <- z %*% beta
+  return(log(1 + exp(z %*% beta)))
+}
+
+compute_d_z_beta_y <- function(y, beta, z){
+  stopifnot(dim(z)[2] == length(beta))
+  -y*(z %*% beta) + compute_A(beta = beta, z = z)
+}
+
 compute_logloss <- function(y_pred, test_y){
   # Input: predictions y_pred, true values test_y
   return(-mean(test_y*log(y_pred) + (1-test_y)*log(1-y_pred)))
